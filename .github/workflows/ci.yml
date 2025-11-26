@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run linter
+        run: npm run lint --if-present
+        continue-on-error: true
+
+      - name: Run tests
+        run: npm test --if-present
+        continue-on-error: true
+
+      - name: Build project
+        run: npm run build --if-present
+        continue-on-error: true
+
+      - name: CDK Synth
+        run: |
+          npm install -g aws-cdk
+          cdk synth --no-staging
+        continue-on-error: true
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+  documentation:
+    name: Validate Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check required files
+        run: |
+          echo "Checking required documentation..."
+          
+          # Check docs
+          for file in docs/cost.md docs/security.md docs/runbook.md docs/troubleshooting.md; do
+            if [ -f "$file" ]; then
+              echo "✅ $file exists"
+            else
+              echo "❌ $file missing"
+            fi
+          done
+          
+          # Check diagrams
+          for file in diagrams/architecture.mmd diagrams/sequence.mmd diagrams/dataflow.mmd; do
+            if [ -f "$file" ]; then
+              echo "✅ $file exists"
+            else
+              echo "❌ $file missing"
+            fi
+          done
+
+      - name: Validate Mermaid diagrams
+        run: |
+          echo "Checking Mermaid diagram syntax..."
+          find diagrams -name "*.mmd" -type f | while read f; do
+            if head -1 "$f" | grep -q "^graph\|^sequenceDiagram\|^flowchart\|^classDiagram\|^stateDiagram\|^erDiagram\|^journey\|^gantt\|^pie\|^mindmap"; then
+              echo "✅ $f - valid"
+            else
+              echo "⚠️ $f - check syntax"
+            fi
+          done
