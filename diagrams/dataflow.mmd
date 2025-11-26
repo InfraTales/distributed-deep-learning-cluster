@@ -1,0 +1,48 @@
+```mermaid
+graph LR
+    subgraph Input["Training Input"]
+        Dataset[Training Dataset]
+        Config[Training Config]
+        Pretrained[Pretrained Weights]
+    end
+
+    subgraph Staging["Data Staging"]
+        S3[S3 Bucket]
+        FSx[FSx Lustre Cache]
+    end
+
+    subgraph Training["Distributed Training"]
+        DataLoader[Data Loader]
+        Forward[Forward Pass]
+        Backward[Backward Pass]
+        AllReduce[All-Reduce Gradients]
+        Optimize[Optimizer Step]
+    end
+
+    subgraph Output["Training Output"]
+        Checkpoints[Checkpoints]
+        Metrics[Training Metrics]
+        FinalModel[Final Model]
+    end
+
+    subgraph Deploy["Deployment"]
+        Registry[Model Registry]
+        Inference[Inference Endpoint]
+    end
+
+    Dataset --> S3
+    Config --> S3
+    Pretrained --> S3
+    S3 --> FSx
+    FSx --> DataLoader
+    DataLoader --> Forward
+    Forward --> Backward
+    Backward --> AllReduce
+    AllReduce --> Optimize
+    Optimize --> Forward
+    Optimize --> Checkpoints
+    Optimize --> Metrics
+    Optimize --> FinalModel
+    FinalModel --> Registry
+    Registry --> Inference
+```

@@ -1,0 +1,35 @@
+```mermaid
+sequenceDiagram
+    participant User as ML Engineer
+    participant Head as Head Node
+    participant Workers as Worker Nodes
+    participant FSx as FSx Lustre
+    participant S3 as S3 Storage
+
+    User->>Head: Submit training job
+    Head->>FSx: Load training data
+    FSx-->>Head: Data ready
+    Head->>Workers: Initialize distributed training
+    
+    loop Training Epoch
+        Head->>FSx: Load batch
+        FSx-->>Head: Batch data
+        Head->>Head: Forward pass
+        Workers->>Workers: Forward pass
+        
+        Note over Head,Workers: All-Reduce via EFA
+        Head->>Workers: Sync gradients (NCCL)
+        Workers-->>Head: Gradients synced
+        
+        Head->>Head: Update weights
+        Workers->>Workers: Update weights
+    end
+
+    alt Checkpoint interval
+        Head->>S3: Save checkpoint
+        S3-->>Head: Checkpoint saved
+    end
+
+    Head->>S3: Save final model
+    Head-->>User: Training complete
+```

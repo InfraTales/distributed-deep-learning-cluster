@@ -1,0 +1,54 @@
+```mermaid
+graph TD
+    subgraph Network["High-Speed Network"]
+        EFA[Elastic Fabric Adapter]
+        PlacementGroup[Cluster Placement Group]
+    end
+
+    subgraph Compute["GPU Compute Cluster"]
+        Node1[p4d.24xlarge - 8x A100]
+        Node2[p4d.24xlarge - 8x A100]
+        Node3[p4d.24xlarge - 8x A100]
+        Node4[p4d.24xlarge - 8x A100]
+    end
+
+    subgraph Storage["High-Performance Storage"]
+        FSx[FSx for Lustre]
+        S3Data[S3 Training Data]
+        S3Checkpoints[S3 Checkpoints]
+    end
+
+    subgraph Framework["Training Framework"]
+        PyTorch[PyTorch DDP]
+        DeepSpeed[DeepSpeed]
+        Horovod[Horovod]
+    end
+
+    subgraph Monitoring["Monitoring"]
+        CloudWatch[CloudWatch Metrics]
+        Dashboards[GPU Dashboards]
+        Alerts[SNS Alerts]
+    end
+
+    EFA --> PlacementGroup
+    PlacementGroup --> Node1
+    PlacementGroup --> Node2
+    PlacementGroup --> Node3
+    PlacementGroup --> Node4
+    Node1 <--> EFA
+    Node2 <--> EFA
+    Node3 <--> EFA
+    Node4 <--> EFA
+    FSx --> Node1
+    FSx --> Node2
+    FSx --> Node3
+    FSx --> Node4
+    S3Data --> FSx
+    Node1 --> S3Checkpoints
+    PyTorch --> Node1
+    DeepSpeed --> Node1
+    Horovod --> Node1
+    Node1 --> CloudWatch
+    CloudWatch --> Dashboards
+    CloudWatch --> Alerts
+```
