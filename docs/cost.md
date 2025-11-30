@@ -47,4 +47,4 @@ For on-demand training jobs:
 
 ## Related Documentation
 
-See `ARCHITECTURE.md` for cluster details and `DEPLOYMENT.md` for configuration options.
+See the project README for architecture details.md` for configuration options.

@@ -100,4 +100,4 @@ Common issues and resolutions for the **Distributed Deep Learning Cluster**.
 - Consider capacity reservations for critical jobs
 - Mix on-demand and spot instances
 
-> For architecture details, see `ARCHITECTURE.md`.
+> For architecture details, see the project README.
