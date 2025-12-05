@@ -1,116 +1,70 @@
-# Runbook
+# Operations Runbook
 
-Operational guide for deploying, operating, and maintaining the **Distributed Deep Learning Cluster**.
+## Overview
+This runbook provides operational procedures for managing and maintaining this infrastructure.
 
-## 1. Deployment
+## Prerequisites
+- AWS CLI configured
+- Terraform/CDK/Pulumi installed
+- Appropriate IAM permissions
 
-### Prerequisites
+## Common Operations
 
-- AWS CLI configured with appropriate credentials
-- Node.js 18+ and npm installed
-- AWS CDK CLI installed (`npm install -g aws-cdk`)
-- GPU instance quota approved (p4d/p3 instances)
-
-### Deploy Steps
-
+### Deployment
 ```bash
-# Install dependencies
-npm install
+# Development
+./scripts/deploy.sh dev
 
-# Bootstrap CDK (first time only)
-cdk bootstrap
-
-# Deploy cluster infrastructure
-cdk deploy --context environment=prod
-
-# Note: GPU instances may take 5-10 minutes to launch
+# Production
+./scripts/deploy.sh prod
 ```
 
-## 2. Training Operations
+### Monitoring
+- CloudWatch Dashboard: Check AWS Console
+- Alerts: Configured via SNS
+- Logs: CloudWatch Logs
 
-### Launch Training Job
+### Troubleshooting
 
+#### Issue: Deployment Fails
+**Symptoms**: Terraform/CDK apply fails
+**Resolution**:
+1. Check AWS credentials
+2. Verify IAM permissions
+3. Review error logs
+4. Check resource quotas
+
+#### Issue: High Costs
+**Symptoms**: Unexpected AWS charges
+**Resolution**:
+1. Review Cost Explorer
+2. Check for unused resources
+3. Verify auto-scaling policies
+4. Review instance types
+
+### Maintenance Windows
+- Preferred: Sunday 02:00-06:00 UTC
+- Avoid: Business hours (09:00-17:00 local time)
+
+### Escalation
+1. Team Lead
+2. DevOps Manager
+3. On-call Engineer
+
+## Emergency Procedures
+
+### Rollback
 ```bash
-# SSH to head node via SSM
-aws ssm start-session --target i-xxxxx
+# Terraform
+terraform apply -var-file=previous.tfvars
 
-# Activate environment
-source /opt/conda/bin/activate pytorch
+# CDK
+cdk deploy --previous-version
 
-# Launch distributed training
-torchrun --nproc_per_node=8 --nnodes=4 \
-  --node_rank=$RANK --master_addr=$MASTER \
-  train.py --config config.yaml
+# Pulumi
+pulumi stack select previous
+pulumi up
 ```
 
-### Using DeepSpeed
-
-```bash
-deepspeed --hostfile hostfile.txt \
-  --num_gpus 8 \
-  train.py --deepspeed ds_config.json
-```
-
-### Using Horovod
-
-```bash
-horovodrun -np 32 -H host1:8,host2:8,host3:8,host4:8 \
-  python train.py
-```
-
-## 3. Monitoring
-
-### Key Metrics to Watch
-
-- **GPU utilization**: Target >80% for efficiency
-- **GPU memory**: Watch for OOM conditions
-- **Network throughput**: EFA bandwidth utilization
-- **Training loss**: Convergence monitoring
-- **Checkpoint frequency**: Recovery point objectives
-
-### Dashboards
-
-Pre-configured dashboards for:
-
-- GPU cluster health
-- Training progress
-- Network performance
-- Cost tracking
-
-## 4. Checkpointing
-
-### Save Checkpoint
-
-```python
-# In training script
-if rank == 0:
-    torch.save({
-        'epoch': epoch,
-        'model_state_dict': model.state_dict(),
-        'optimizer_state_dict': optimizer.state_dict(),
-    }, f's3://bucket/checkpoints/epoch_{epoch}.pt')
-```
-
-### Resume from Checkpoint
-
-```python
-checkpoint = torch.load('s3://bucket/checkpoints/latest.pt')
-model.load_state_dict(checkpoint['model_state_dict'])
-```
-
-## 5. Maintenance
-
-### Regular Tasks
-
-- Update NVIDIA drivers quarterly
-- Patch OS security updates monthly
-- Review GPU utilization weekly
-- Clean up old checkpoints
-
-### Teardown
-
-```bash
-cdk destroy --context environment=prod
-```
-
-> For troubleshooting common issues, see `docs/troubleshooting.md`.
+### Disaster Recovery
+See [DISASTER_RECOVERY.md](DISASTER_RECOVERY.md)
